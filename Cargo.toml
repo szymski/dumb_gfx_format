@@ -1,11 +1,11 @@
 [package]
+authors = ["Szymon Jankowski <ja@szymekk.me>"]
+edition = "2018"
 name = "dumb_gfx_format"
 version = "0.1.0"
-authors = ["Szymon Jankowski <s.jankowski@fireup.pro>"]
-edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
+byteorder = "*"
 image = "0.24.0"
 memoffset = "0.6.5"
+num = "0.4.0"
+snap = "1.0.5"

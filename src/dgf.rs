@@ -1,7 +1,9 @@
-use crate::dgf::format::{DgfImageProperties, DgfVersion, ImageMode};
-use crate::dgf::format::compression::CompressionInfo;
-use crate::dgf::format::compression::image::{DctProperties, ImageCompressionMode, ImageCompressionProps};
+use crate::dgf::format::compression::image::{
+    DctProperties, ImageCompression, ImageCompressionMode,
+};
 use crate::dgf::format::compression::post::{PostCompression, PostCompressionMode};
+use crate::dgf::format::compression::CompressionInfo;
+use crate::dgf::format::{DgfImageProperties, DgfVersion, ImageMode};
 
 pub struct Dgf {
     pub version: DgfVersion,
@@ -21,10 +23,12 @@ impl Dgf {
                 reserved: [0; 32],
             },
             compression: CompressionInfo {
-                image: ImageCompressionProps {
+                image: ImageCompression {
                     mode: ImageCompressionMode::None,
                     dct: DctProperties {
                         block_size: 8,
+                        coefficient_count: 32,
+                        reserved: [0; 2],
                     },
                 },
                 post: PostCompression {
@@ -59,6 +63,10 @@ pub mod format {
         pub data_section_magic: [u8; 4],
         pub data_offset: u32,
         pub data_length: u32,
+        /// Post compressed bytes of compressed image data.
+        /// For each **ImageCompressionMode**, structure will differ:
+        /// - **None** - raw sequence of bytes from top left containing each channel color, depending on **ImageMode**
+        /// - **Dct** - list of DCT coefficient sequences for each DCT block which the image is divided into, starting from top left
         pub data: [u8; 0],
     }
 
@@ -70,7 +78,7 @@ pub mod format {
         pub reserved: [u8; 32],
     }
 
-    #[derive(Copy, Clone)]
+    #[derive(Copy, Clone, Debug)]
     #[repr(u16)]
     pub enum ImageMode {
         Grayscale1 = 0x00,
@@ -79,32 +87,34 @@ pub mod format {
     }
 
     pub mod compression {
-        use crate::dgf::format::compression::image::ImageCompressionProps;
+        use crate::dgf::format::compression::image::ImageCompression;
         use crate::dgf::format::compression::post::PostCompression;
 
         #[derive(Copy, Clone)]
         pub struct CompressionInfo {
-            pub image: ImageCompressionProps,
+            pub image: ImageCompression,
             pub post: PostCompression,
         }
 
         pub mod image {
             #[derive(Copy, Clone)]
-            pub struct ImageCompressionProps {
+            pub struct ImageCompression {
                 pub mode: ImageCompressionMode,
                 pub dct: DctProperties,
             }
 
-            #[derive(Copy, Clone)]
+            #[derive(Debug, Copy, Clone)]
             #[repr(u8)]
             pub enum ImageCompressionMode {
                 None = 0,
                 Dct = 1,
             }
 
-            #[derive(Copy, Clone)]
+            #[derive(Copy, Clone, Debug)]
             pub struct DctProperties {
+                pub coefficient_count: u16,
                 pub block_size: u8,
+                pub reserved: [u8; 2],
             }
         }
 
@@ -115,11 +125,13 @@ pub mod format {
                 pub reserved: [u8; 3],
             }
 
-            #[derive(Copy, Clone)]
+            #[derive(Copy, Clone, Debug)]
             #[repr(u8)]
             pub enum PostCompressionMode {
                 None = 0,
+                // TODO: Support zigzag RLE
                 Rle = 1,
+                Snappy = 2,
             }
         }
     }
